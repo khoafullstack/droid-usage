@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DroidUsage.Configuration;
 using DroidUsage.Models;
 using DroidUsage.Presentation;
 using DroidUsage.Services.Abstractions;
@@ -22,8 +23,10 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly UsagePresenter _presenter;
     private readonly IClock _clock;
+    private readonly IUpdateService _updateService;
     private readonly ILogger<MainViewModel> _logger;
     private readonly DispatcherQueueTimer _refreshTimer;
+    private readonly DispatcherQueueTimer _updateTimer;
 
     private BillingLimitsResponse? _latestLimits;
     private bool _isRefreshing;
@@ -34,8 +37,10 @@ public sealed partial class MainViewModel : ObservableObject
         ISettingsService settings,
         UsagePresenter presenter,
         IClock clock,
+        IUpdateService updateService,
         ILogger<MainViewModel> logger)
     {
+        _updateService = updateService;
         _apiClient = apiClient;
         _planTierProvider = planTierProvider;
         _settings = settings;
@@ -52,7 +57,16 @@ public sealed partial class MainViewModel : ObservableObject
         _refreshTimer.Interval = TimeSpan.FromSeconds(
             UsagePresenter.NormalizeRefreshSeconds(settings.Current.RefreshIntervalSeconds));
         _refreshTimer.Tick += async (_, _) => await RefreshAsync();
+
+        _updateTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _updateTimer.IsRepeating = true;
+        _updateTimer.Interval = UpdateCheckInterval;
+        _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync();
     }
+
+    private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(6);
+
+    public string AppVersionText { get; } = $"Version {AppInfo.Version}";
 
     public UsageRowViewModel FiveHour { get; } = new();
 
@@ -106,6 +120,20 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _trayTooltip = "Factory Droid Usage";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateBannerText))]
+    private string? _availableUpdateVersion;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotUpdating))]
+    private bool _isUpdating;
+
+    public bool IsNotUpdating => !IsUpdating;
+
+    public bool IsUpdateAvailable => !string.IsNullOrEmpty(AvailableUpdateVersion);
+
+    public string UpdateBannerText => $"Version {AvailableUpdateVersion} is available";
 
     public bool IsCollapsed => !IsExpanded;
 
@@ -162,13 +190,48 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnStatusChanged(RefreshStatus value) => OnPropertyChanged(nameof(StatusText));
 
+    partial void OnAvailableUpdateVersionChanged(string? value) => OnPropertyChanged(nameof(IsUpdateAvailable));
+
     public void Start()
     {
         _refreshTimer.Start();
+        _updateTimer.Start();
         _ = RefreshAsync();
+        _ = CheckForUpdatesAsync();
     }
 
-    public void Stop() => _refreshTimer.Stop();
+    public void Stop()
+    {
+        _refreshTimer.Stop();
+        _updateTimer.Stop();
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        if (IsUpdating)
+        {
+            return;
+        }
+
+        AvailableUpdateVersion = await _updateService.CheckForUpdateAsync();
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdateAsync()
+    {
+        if (IsUpdating || !IsUpdateAvailable)
+        {
+            return;
+        }
+
+        IsUpdating = true;
+        var ok = await _updateService.DownloadAndRestartAsync();
+        if (!ok)
+        {
+            IsUpdating = false;
+        }
+    }
 
     [RelayCommand]
     private void ToggleExpand() => IsExpanded = !IsExpanded;

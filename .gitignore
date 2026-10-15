@@ -12,3 +12,6 @@
 
 # Indexing
 .codegraph/
+# Installer build output
+windows/artifacts/
+windows/releases/

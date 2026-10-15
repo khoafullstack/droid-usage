@@ -9,6 +9,7 @@ using DroidUsage.Services.Api;
 using DroidUsage.Services.Auth;
 using DroidUsage.Services.Security;
 using DroidUsage.Services.Settings;
+using DroidUsage.Services.Update;
 using DroidUsage.ViewModels;
 using DroidUsage.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,8 @@ public static class ServiceRegistration
         services.AddSingleton<ITokenRefresher, WorkOsTokenRefresher>();
         services.AddSingleton<IPlanTierProvider, PlanTierProvider>();
         services.AddSingleton<IUsageApiClient, FactoryApiClient>();
+
+        services.AddSingleton<IUpdateService, VelopackUpdateService>();
 
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<UsagePresenter>();
