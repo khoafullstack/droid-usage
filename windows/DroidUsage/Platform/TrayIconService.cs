@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using DroidUsage.Helpers;
+using DroidUsage.Services.Abstractions;
 using Microsoft.UI.Xaml;
 
-namespace DroidUsage.Services;
+namespace DroidUsage.Platform;
 
-public sealed class TrayIconService : IDisposable
+public sealed class TrayIconService : ITrayIconService
 {
     private const uint WM_APP_TRAYICON = 0x8000 + 42;
     private const uint WM_LBUTTONUP = 0x0202;
@@ -125,8 +125,8 @@ public sealed class TrayIconService : IDisposable
         nint wParam,
         nint lParam);
 
-    private readonly IntPtr _hwnd;
-    private readonly SUBCLASSPROC _subclassProc;
+    private IntPtr _hwnd;
+    private SUBCLASSPROC? _subclassProc;
     private IntPtr _customIconHandle;
     private NOTIFYICONDATA _nid;
     private bool _isAdded;
@@ -138,8 +138,13 @@ public sealed class TrayIconService : IDisposable
     public event Action? ResetPositionRequested;
     public event Action? ExitRequested;
 
-    public TrayIconService(Window window)
+    public void Attach(Window window)
     {
+        if (_hwnd != IntPtr.Zero || _disposed)
+        {
+            return;
+        }
+
         _hwnd = WindowHelper.GetHwnd(window);
         _subclassProc = WindowSubclassProc;
         SetWindowSubclass(_hwnd, _subclassProc, 1, 0);
@@ -283,6 +288,9 @@ public sealed class TrayIconService : IDisposable
             _customIconHandle = IntPtr.Zero;
         }
 
-        RemoveWindowSubclass(_hwnd, _subclassProc, 1);
+        if (_hwnd != IntPtr.Zero && _subclassProc != null)
+        {
+            RemoveWindowSubclass(_hwnd, _subclassProc, 1);
+        }
     }
 }

@@ -19,6 +19,12 @@ public sealed class AppSettings
     [JsonPropertyName("refreshIntervalSeconds")]
     public int RefreshIntervalSeconds { get; set; } = 60;
 
+    [JsonPropertyName("manualApiKeyProtected")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ManualApiKeyProtected { get; set; }
+
+    // Plaintext key written by earlier versions; read once for migration, never written back.
     [JsonPropertyName("manualApiKey")]
-    public string ManualApiKey { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LegacyManualApiKey { get; set; }
 }

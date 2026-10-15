@@ -2,9 +2,11 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
-namespace DroidUsage.Services;
+using DroidUsage.Services.Abstractions;
 
-public static class CredentialManagerHelper
+namespace DroidUsage.Platform;
+
+public sealed class WindowsCredentialStore : ISecretStore
 {
     private const uint CRED_TYPE_GENERIC = 1;
 
@@ -31,7 +33,7 @@ public static class CredentialManagerHelper
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern void CredFree(IntPtr cred);
 
-    public static string? GetGenericPassword(string targetName)
+    public string? GetGenericPassword(string targetName)
     {
         if (!CredRead(targetName, CRED_TYPE_GENERIC, 0, out IntPtr credPtr) || credPtr == IntPtr.Zero)
         {

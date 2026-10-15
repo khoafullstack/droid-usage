@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml;
 using Windows.Graphics;
 using WinRT.Interop;
 
-namespace DroidUsage.Helpers;
+namespace DroidUsage.Platform;
 
 public static class WindowHelper
 {
