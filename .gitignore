@@ -1,0 +1,11 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+**/.vs/
+*.user
+*.suo
+
+# macOS (future)
+.DS_Store
+**/xcuserdata/
+**/DerivedData/
