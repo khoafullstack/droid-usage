@@ -135,6 +135,7 @@ try {
                     --releaseName "$PackTitle $Version" `
                     --channel $rid `
                     --outputDir $ReleasesDir `
+                    --merge `
                     --publish
             }
         }
